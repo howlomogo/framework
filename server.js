@@ -6,6 +6,14 @@ const Hapi = require('hapi')
 const Boom = require('boom')
 const Joi = require('joi')
 
+const mongoose = require('mongoose')
+
+const User = require('./models/user')
+
+// Connect to Mongoose
+mongoose.connect('mongodb://localhost/test')
+var db = mongoose.connection
+
 const server = new Hapi.Server()
 server.connection({ port: 3000, host: 'localhost' })
 
@@ -27,39 +35,66 @@ server.route({
   }
 });
 
+// Get all Users
 server.route({
   method: 'GET',
-  path: '/valid/{test}',
+  path: '/getusers',
   handler: function (request, reply) {
-    // Check {test} param is between 3 and 10 characters or 400
-    reply('Valid Test')
-  },
-  config: {
-    validate: {
-      params: {
-        test: Joi.string().min(3).max(10)
+    User.getUsers((err, users) => {
+      if(err){
+        throw err
       }
-    }
-  }
-})
-
-server.route({
-  method: 'GET',
-  path: '/name/{name}',
-  handler: function (request, reply) {
-    // Filter data based on route
-    const result = mockData.filter(
-      object => object.name === request.params.name
-    )
-
-    if(result.length < 1) {
-      reply(Boom.notFound('Person does not exist'))
-    }
-    else {
-      reply('Hello, ' + encodeURIComponent(request.params.name))
-    }
+      reply(users)
+    })
   }
 });
+
+// Get user by id
+server.route({
+  method: 'GET',
+  path: '/id/{id}',
+  handler: function (request, reply) {
+    User.getUserById(request.params.id, (err, user) => {
+  		if(err){
+  			throw err;
+  		}
+      reply(user)
+  	})
+  }
+});
+
+// Add user
+server.route({
+  method: 'GET',
+  path: '/add/{name}',
+  handler: function (request, reply) {
+    const newUser = {
+      firstname: request.params.name,
+      lastname: request.params.name
+    }
+    User.addUser(newUser, (err, newUser) => {
+  		if(err){
+  			throw err;
+  		}
+      reply(newUser)
+  	})
+  }
+});
+
+// Remove user by id
+server.route({
+  method: 'GET',
+  path: '/remove/{id}',
+  handler: function (request, reply) {
+    User.removeUser(request.params.id, (err, user) => {
+  		if(err){
+  			throw err;
+  		}
+      reply(user)
+  	})
+  }
+});
+
 
 server.start((err) => {
   if (err) {
